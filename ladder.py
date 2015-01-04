@@ -1,5 +1,7 @@
 #! /usr/bin/env python3
 
+import unittest
+
 
 class Player:
 
@@ -40,6 +42,20 @@ class Ladder:
             return False
         return True
 
+
+class LadderTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.player_one = Player('Andrew', -1)
+        self.player_two = Player('Walther', 5)
+        self.player_three = Player('Milan', -6)
+        self.ladder = Ladder([self.player_one, self.player_two, self.player_three])
+
+    def test_match_valid(self):
+        self.assertTrue(self.ladder.match_valid(self.player_one, self.player_two))
+
+
 if __name__ == '__main__':
     ladder = Ladder([Player('Andrew', -1), Player('Walther', 5), Player('Milan', -6)])
     print(ladder)
+    unittest.main()
