@@ -1,0 +1,22 @@
+record_type, player_white, player_black, winner, rated
+add_player, "Walther"
+add_player, "Andrew"
+add_player, "Yuan"
+add_player, "Milan"
+add_player, "Neil"
+add_player, "Will"
+add_player, "Mike"
+add_player, "Shawn"
+add_player, "Gus"
+add_player, "Tim"
+add_player, "David S"
+add_player, "Chun"
+add_player, "Dan S"
+add_player, "Jun"
+game, "Mike", "Jun", "B", not_rated
+game, "Walther", "Chun", "B", not_rated
+game, "Andrew", "Milan", "W", rated
+game, "Mike", "Dan S", "B", not_rated
+game, "Shawn", "David S", "B", rated
+game, "Milan", "Neil", "W", not_rated
+game, "Will", "Jun", "B", not_rated
