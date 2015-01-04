@@ -38,7 +38,7 @@ class Ladder:
         return set(self.standings)
 
     def match_valid(self, player_one, player_two):
-        if not {player_one, player_two} < self.players():
+        if not {player_one, player_two} <= self.players():
             return False
         return True
 
@@ -49,10 +49,12 @@ class LadderTestCase(unittest.TestCase):
         self.player_one = Player('Andrew', -1)
         self.player_two = Player('Walther', 5)
         self.player_three = Player('Milan', -6)
-        self.ladder = Ladder([self.player_one, self.player_two, self.player_three])
+        self.ladder = Ladder([self.player_one, self.player_two])
 
     def test_match_valid(self):
         self.assertTrue(self.ladder.match_valid(self.player_one, self.player_two))
+        self.assertFalse(self.ladder.match_valid(self.player_one, self.player_three))
+        self.assertFalse(self.ladder.match_valid(self.player_two, self.player_three))
 
 
 if __name__ == '__main__':
