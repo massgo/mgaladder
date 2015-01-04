@@ -10,14 +10,12 @@ class Player:
     def __repr__(self):
         return '<{:s}(name={:s}, rank={:d})>'.format(self.__class__.__name__, self.name, self.rank)
 
-
     def __str__(self):
         rank_str = ''
         if self.rank < 0:
             rank_str = '{:d}K'.format(-self.rank)
         else:
             rank_str = '{:d}D'.format(self.rank)
-
         return '{:s} {:s}'.format(self.name, rank_str)
 
 
@@ -34,6 +32,13 @@ class Ladder:
             position += 1
         return the_string
 
+    def players(self):
+        return set(self.standings)
+
+    def match_valid(self, player_one, player_two):
+        if not {player_one, player_two} < self.players():
+            return False
+        return True
 
 if __name__ == '__main__':
     ladder = Ladder([Player('Andrew', -1), Player('Walther', 5), Player('Milan', -6)])
