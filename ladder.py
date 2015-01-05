@@ -169,6 +169,4 @@ class LadderTestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    ladder = Ladder([Player('Andrew', -1), Player('Walther', 5), Player('Milan', -6)])
-    print(ladder)
     unittest.main()
