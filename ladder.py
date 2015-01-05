@@ -48,7 +48,7 @@ class Rank:
                 self.value -= other + 1
         return self
 
-    def __int__(self, other):
+    def __int__(self):
         return self.value
 
     def __str__(self):
@@ -67,7 +67,7 @@ class Player:
         self.rank = Rank(rank)
 
     def __repr__(self):
-        return '<{:s}(name={:s}, rank={:d})>'.format(self.__class__.__name__, self.name, self.rank)
+        return '<{:s}(name={:s}, rank={:s})>'.format(self.__class__.__name__, self.name, str(self.rank))
 
     def __str__(self):
         return '{:s} {:s}'.format(self.name, self.rank)
@@ -89,9 +89,14 @@ class Ladder:
     def players(self):
         return set(self.standings)
 
-    def match_valid(self, player_one, player_two):
-        if not {player_one, player_two} <= self.players():
+    def match_valid(self, white, black):
+        if not {black, white} <= self.players():
             return False
+        if self.standings.index(black) < self.standings.index(white):
+            return False
+        if self.standings.index(black) - self.standings.index(white) > 2:
+            if white.rank - black.rank > 2:
+                return False
         return True
 
 
@@ -157,15 +162,24 @@ class RankTestCase(unittest.TestCase):
 class LadderTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.player_one = Player('Andrew', -1)
-        self.player_two = Player('Walther', 5)
-        self.player_three = Player('Milan', -6)
-        self.ladder = Ladder([self.player_one, self.player_two])
+        self.players = [Player('Andrew', -1),
+                        Player('Walther', 5),
+                        Player('Milan', -6),
+                        Player('James', -10),
+                        Player('Quinten', 3),
+                        ]
+        self.ladder = Ladder(self.players)
 
     def test_match_valid(self):
-        self.assertTrue(self.ladder.match_valid(self.player_one, self.player_two))
-        self.assertFalse(self.ladder.match_valid(self.player_one, self.player_three))
-        self.assertFalse(self.ladder.match_valid(self.player_two, self.player_three))
+        self.assertTrue(self.ladder.match_valid(self.players[0], self.players[1]))
+        new_player = Player('Jeff', 5)
+        self.assertFalse(self.ladder.match_valid(self.players[0], new_player))
+        self.assertFalse(self.ladder.match_valid(self.players[1], new_player))
+        self.assertFalse(self.ladder.match_valid(self.players[0], self.players[3]))
+        self.assertTrue(self.ladder.match_valid(self.players[0], self.players[2]))
+        self.assertTrue(self.ladder.match_valid(self.players[1], self.players[3]))
+        self.assertTrue(self.ladder.match_valid(self.players[1], self.players[4]))
+        self.assertFalse(self.ladder.match_valid(self.players[1], self.players[0]))
 
 
 if __name__ == '__main__':
