@@ -3,22 +3,74 @@
 import unittest
 
 
+class Rank:
+
+    def __init__(self, value):
+        if int(value) == 0:
+            raise ValueError('Rank values must be a nonzero integer')
+        self.value = int(value)
+
+    def __add__(self, other):
+        # adding ranks is nonsensical
+        return NotImplemented
+
+    def __sub__(self, other):
+        # note that this returns an nonnegative integer, NOT a rank (intentionally)
+
+        # check whether both values have the same sign
+        if abs(self.value + other.value) == abs(self.value) + abs(other.value):
+            return abs(self.value - other.value)
+        else:
+            return abs(self.value) + abs(other.value) - 1
+
+    # there's gotta be a better way to do this
+    def __iadd__(self, other):
+        if other < 0:
+            self -= abs(other)
+        elif self.value < 0:
+            if abs(self.value) > other:
+                self.value += other
+            else:
+                self.value += other + 1
+        else:
+            self.value += other
+        return self
+
+    def __isub__(self, other):
+        if other < 0:
+            self += abs(other)
+        elif self.value < 0:
+            self.value -= other
+        else:
+            if self.value > other:
+                self.value -= other
+            else:
+                self.value -= other + 1
+        return self
+
+    def __int__(self, other):
+        return self.value
+
+    def __str__(self):
+        rank_str = ''
+        if self.value < 0:
+            rank_str = '{:d}K'.format(-self.value)
+        else:
+            rank_str = '{:d}D'.format(self.value)
+        return rank_str
+
+
 class Player:
 
     def __init__(self, name, rank):
         self.name = name
-        self.rank = rank
+        self.rank = Rank(rank)
 
     def __repr__(self):
         return '<{:s}(name={:s}, rank={:d})>'.format(self.__class__.__name__, self.name, self.rank)
 
     def __str__(self):
-        rank_str = ''
-        if self.rank < 0:
-            rank_str = '{:d}K'.format(-self.rank)
-        else:
-            rank_str = '{:d}D'.format(self.rank)
-        return '{:s} {:s}'.format(self.name, rank_str)
+        return '{:s} {:s}'.format(self.name, self.rank)
 
 
 class Ladder:
@@ -41,6 +93,65 @@ class Ladder:
         if not {player_one, player_two} <= self.players():
             return False
         return True
+
+
+class RankTestCase(unittest.TestCase):
+
+    def test_init(self):
+        self.assertRaises(ValueError, Rank, 0)
+
+    def test_add(self):
+        with self.assertRaises(TypeError):
+            value = Rank(1) + Rank(2)
+        with self.assertRaises(TypeError):
+            value = Rank(1) + 2
+
+    def test_sub(self):
+        self.assertEqual(Rank(5) - Rank(1), 4)
+        self.assertEqual(Rank(5) - Rank(5), 0)
+        self.assertEqual(Rank(5) - Rank(6), 1)
+        self.assertEqual(Rank(5) - Rank(-3), 7)
+        self.assertEqual(Rank(1) - Rank(-1), 1)
+
+    def test_inc(self):
+        rank = Rank(1)
+        rank += 1
+        self.assertEqual(rank.value, Rank(2).value)
+        rank += 5
+        self.assertEqual(rank.value, Rank(7).value)
+        rank += 0
+        self.assertEqual(rank.value, Rank(7).value)
+        rank += -1
+        self.assertEqual(rank.value, Rank(6).value)
+        rank += -6
+        self.assertEqual(rank.value, Rank(-1).value)
+        rank += -10
+        self.assertEqual(rank.value, Rank(-11).value)
+        rank += 15
+        self.assertEqual(rank.value, Rank(5).value)
+
+    def test_dec(self):
+        rank = Rank(-1)
+        rank -= 1
+        self.assertEqual(rank.value, Rank(-2).value)
+        rank -= 5
+        self.assertEqual(rank.value, Rank(-7).value)
+        rank -= 0
+        self.assertEqual(rank.value, Rank(-7).value)
+        rank -= -1
+        self.assertEqual(rank.value, Rank(-6).value)
+        rank -= -6
+        self.assertEqual(rank.value, Rank(1).value)
+        rank -= -10
+        self.assertEqual(rank.value, Rank(11).value)
+        rank -= 15
+        self.assertEqual(rank.value, Rank(-5).value)
+
+    def test_str(self):
+        self.assertEqual(str(Rank(5)), '5D')
+        self.assertEqual(str(Rank(1)), '1D')
+        self.assertEqual(str(Rank(-5)), '5K')
+        self.assertEqual(str(Rank(-1)), '1K')
 
 
 class LadderTestCase(unittest.TestCase):
