@@ -59,6 +59,12 @@ class Rank(object):
             rank_str = '{:d}D'.format(self.value)
         return rank_str
 
+    def __eq__(self, other):
+        return self.value == other.value
+
+    def __hash__(self):
+        return self.value
+
 
 class Player(object):
 
@@ -71,7 +77,23 @@ class Player(object):
                                                      str(self.rank))
 
     def __str__(self):
-        return '{:s} {:s}'.format(self.name, self.rank)
+        return '{:s} {:s}'.format(self.name, str(self.rank))
+
+    def __eq__(self, other):
+        return self.name == other.name and self.rank == other.rank
+
+    def __hash__(self):
+        return hash((self.name, self.rank))
+
+
+class Result(object):
+
+    def __init__(self, white, black, winner):
+        if not winner in {white, black}:
+            raise ValueError('Winner must be either white or black Player object')
+        self.white = white
+        self.black = black
+        self.winner = winner
 
 
 class Ladder(object):
@@ -99,6 +121,13 @@ class Ladder(object):
             if white.rank - black.rank > 2:
                 return False
         return True
+
+    def submit_result(self, result):
+        if not self.match_valid(result.white, result.black):
+            raise ValueError('Invalid match')
+        if result.winner == result.black:
+            self.standings.remove(result.black)
+            self.standings.insert(self.standings.index(result.white), result.black)
 
 
 class RankTestCase(unittest.TestCase):
@@ -182,6 +211,16 @@ class LadderTestCase(unittest.TestCase):
         self.assertTrue(self.ladder.match_valid(self.players[1], self.players[4]))
         self.assertFalse(self.ladder.match_valid(self.players[1], self.players[0]))
 
+    def test_submit_result(self):
+        result_one = Result(self.players[0], self.players[1], self.players[1])
+        self.ladder.submit_result(result_one)
+        new_standings = [Player('Walther', 5),
+                         Player('Andrew', -1),
+                         Player('Milan', -6),
+                         Player('James', -10),
+                         Player('Quinten', 3),
+                         ]
+        self.assertEqual(self.ladder.standings, new_standings)
 
 if __name__ == '__main__':
     unittest.main()
