@@ -3,7 +3,7 @@
 import unittest
 
 
-class Rank:
+class Rank(object):
 
     def __init__(self, value):
         if int(value) == 0:
@@ -60,20 +60,21 @@ class Rank:
         return rank_str
 
 
-class Player:
+class Player(object):
 
     def __init__(self, name, rank):
         self.name = name
         self.rank = Rank(rank)
 
     def __repr__(self):
-        return '<{:s}(name={:s}, rank={:s})>'.format(self.__class__.__name__, self.name, str(self.rank))
+        return '<{:s}(name={:s}, rank={:s})>'.format(self.__class__.__name__, self.name,
+                                                     str(self.rank))
 
     def __str__(self):
         return '{:s} {:s}'.format(self.name, self.rank)
 
 
-class Ladder:
+class Ladder(object):
 
     def __init__(self, standings):
         self.standings = standings
