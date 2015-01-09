@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 import unittest
+from datetime import datetime, timezone
 
 
 class Rank(object):
@@ -68,38 +69,49 @@ class Rank(object):
 
 class Player(object):
 
-    def __init__(self, name, rank):
+    def __init__(self, name, rank, aga_id):
         self.name = name
         self.rank = Rank(rank)
+        self.aga_id = aga_id
 
     def __repr__(self):
-        return '<{:s}(name={:s}, rank={:s})>'.format(self.__class__.__name__, self.name,
-                                                     str(self.rank))
+        return '<{:s}(name={:s}, rank={:s}, aga_id={:d})>'.format(self.__class__.__name__,
+                                                                  self.name, str(self.rank),
+                                                                  self.aga_id)
 
     def __str__(self):
-        return '{:s} {:s}'.format(self.name, str(self.rank))
-
-    def __eq__(self, other):
-        return self.name == other.name and self.rank == other.rank
-
-    def __hash__(self):
-        return hash((self.name, self.rank))
+        return '{:s} ({:d}) {:s}'.format(self.name, self.aga_id, str(self.rank))
 
 
 class Result(object):
 
-    def __init__(self, white, black, winner):
+    def __init__(self, white, black, winner, time=None):
         if not winner in {white, black}:
-            raise ValueError('Winner must be either white or black Player object')
+            raise ValueError('Winner must be either white or black ladder_id')
         self.white = white
         self.black = black
         self.winner = winner
+        if time is None:
+            time = datetime.now(timezone.utc)
+        self.time = time
 
 
 class Ladder(object):
 
-    def __init__(self, standings):
-        self.standings = standings
+    def __init__(self, players=None, standings=None, results=None, base_id=0):
+        if standings is None:
+            self.standings = []
+        else:
+            self.standings = standings
+        if players is None:
+            self.players = {}
+        else:
+            self.players = players
+        if results is None:
+            self.results = []
+        else:
+            self.results = results
+        self.id_ctr = base_id
 
     def __str__(self):
         the_string = 'Ladder standings:'
@@ -109,25 +121,34 @@ class Ladder(object):
             position += 1
         return the_string
 
-    def players(self):
-        return set(self.standings)
+    def add_players(self, players):
+        for player in players:
+            self.players[self.id_ctr] = player
+            self.id_ctr += 1
 
-    def match_valid(self, white, black):
-        if not {black, white} <= self.players():
-            return False
-        if self.standings.index(black) < self.standings.index(white):
-            return False
-        if self.standings.index(black) - self.standings.index(white) > 2:
-            if white.rank - black.rank > 2:
-                return False
-        return True
+    def validate_match(self, white, black):
+        player_set = self.players.keys()
+        black_pos = self.standings.index(black)
+        white_pos = self.standings.index(white)
+        if not black in player_set:
+            raise ValueError('Black player unknown: {:d}'.format(black))
+        if not white in player_set:
+            raise ValueError('White player unknown: {:d}'.format(white))
+        if black_pos < white_pos:
+            raise ValueError('White standing ({:d}) <= black standing ({:d})'
+                             .format(white_pos, black_pos))
+        pos_diff = black_pos - white_pos
+        rank_diff = self.players[white].rank - self.players[black].rank
+        if pos_diff > 2 and rank_diff > 2:
+            raise ValueError('Rank difference: {:d}, position difference: {:d}'.format(rank_diff,
+                                                                                       pos_diff))
 
     def submit_result(self, result):
-        if not self.match_valid(result.white, result.black):
-            raise ValueError('Invalid match')
+        self.validate_match(result.white, result.black)
         if result.winner == result.black:
             self.standings.remove(result.black)
             self.standings.insert(self.standings.index(result.white), result.black)
+        self.results.append(result)
 
 
 class RankTestCase(unittest.TestCase):
@@ -192,34 +213,36 @@ class RankTestCase(unittest.TestCase):
 class LadderTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.players = [Player('Andrew', -1),
-                        Player('Walther', 5),
-                        Player('Milan', -6),
-                        Player('James', -10),
-                        Player('Quinten', 3),
-                        ]
-        self.ladder = Ladder(self.players)
+        self.players = {0: Player('Andrew', -1, 12345),
+                        1: Player('Walther', 5, 12390),
+                        2: Player('Milan', -6, 234),
+                        3: Player('James', -10, 2399),
+                        4: Player('Quinten', 3, 2),
+                        }
+        self.ladder = Ladder(players=self.players, standings=[0, 1, 2, 3, 4], base_id=5)
 
     def test_match_valid(self):
-        self.assertTrue(self.ladder.match_valid(self.players[0], self.players[1]))
-        new_player = Player('Jeff', 5)
-        self.assertFalse(self.ladder.match_valid(self.players[0], new_player))
-        self.assertFalse(self.ladder.match_valid(self.players[1], new_player))
-        self.assertFalse(self.ladder.match_valid(self.players[0], self.players[3]))
-        self.assertTrue(self.ladder.match_valid(self.players[0], self.players[2]))
-        self.assertTrue(self.ladder.match_valid(self.players[1], self.players[3]))
-        self.assertTrue(self.ladder.match_valid(self.players[1], self.players[4]))
-        self.assertFalse(self.ladder.match_valid(self.players[1], self.players[0]))
+        try:
+            self.ladder.validate_match(0, 1)
+            self.ladder.validate_match(0, 2)
+            self.ladder.validate_match(1, 3)
+            self.ladder.validate_match(1, 4)
+        except ValueError as e:
+            self.fail(str(e))
+
+        with self.assertRaises(ValueError):
+            self.ladder.validate_match(0, 5)
+        with self.assertRaises(ValueError):
+            self.ladder.validate_match(1, 5)
+        with self.assertRaises(ValueError):
+            self.ladder.validate_match(0, 3)
+        with self.assertRaises(ValueError):
+            self.ladder.validate_match(1, 0)
 
     def test_submit_result(self):
-        result_one = Result(self.players[0], self.players[1], self.players[1])
+        result_one = Result(0, 1, 1)
         self.ladder.submit_result(result_one)
-        new_standings = [Player('Walther', 5),
-                         Player('Andrew', -1),
-                         Player('Milan', -6),
-                         Player('James', -10),
-                         Player('Quinten', 3),
-                         ]
+        new_standings = [1, 0, 2, 3, 4]
         self.assertEqual(self.ladder.standings, new_standings)
 
 if __name__ == '__main__':
