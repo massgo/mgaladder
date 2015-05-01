@@ -2,6 +2,7 @@
 
 import unittest
 from datetime import datetime, timezone
+from copy import copy
 
 
 class Rank(object):
@@ -66,21 +67,57 @@ class Rank(object):
     def __hash__(self):
         return self.value
 
-
 class Player(object):
+    """Player Class that holds basic player information.
 
-    def __init__(self, name, rank, aga_id):
+    Players are unique, and can be sorted.
+
+    The sort is based on player strength, which is measured by their AGA
+    rating (higher is better). Two players with the same rating, will be
+    ordered by their AGA ID (smaller is "better").
+    """
+
+    def __init__(self, name="by", rank=-35, aga_id=-1, rating=-35):
         self.name = name
-        self.rank = Rank(rank)
+        self.aga_rating = rating
         self.aga_id = aga_id
+        self.tournament = "Test Tournament"
+        self.division = "Test Division"
+        self.rank = Rank(rank) #temp to pass tests
 
-    def __repr__(self):
-        return '<{:s}(name={:s}, rank={:s}, aga_id={:d})>'.format(self.__class__.__name__,
-                                                                  self.name, str(self.rank),
-                                                                  self.aga_id)
+    def participates(self, tournament_name):
+        """Assign a tournament for the player when they participates"""
+
+        self.tournament = tournament_name
+
+    def plays_division(self, division_id):
+        """Assign a division for the player to play in"""
+
+        self.division = division_id
 
     def __str__(self):
-        return '{:s} ({:d}) {:s}'.format(self.name, self.aga_id, str(self.rank))
+        return ("<Player: %s, AGA ID: %i, AGA Rating: %f>"
+                % (self.name, self.aga_id, self.aga_rating))
+
+    def __repr__(self):
+        return ("Player(name='%s', aga_id=%i, rating=%f)"
+                % (self.name, self.aga_id, self.aga_rating))
+
+    def __gt__(self, other):
+        if self.aga_rating > other.aga_rating:
+            return True
+        elif self.aga_rating == other.aga_rating:
+            return self.aga_id < other.aga_id
+
+    def __eq__(self, other):
+        if isinstance(other, Player):
+            return self.__repr__() == other.__repr__()
+        else:
+            return False
+
+    def __hash__(self):
+        return hash((self.name, self.aga_id, self.aga_rating))
+
 
 
 class Result(object):
@@ -209,6 +246,78 @@ class RankTestCase(unittest.TestCase):
         self.assertEqual(str(Rank(-5)), '5K')
         self.assertEqual(str(Rank(-1)), '1K')
 
+class PlayerTestCase(unittest.TestCase):
+    """PlayerTest class to get Player class"""
+
+    def setUp(self):
+
+        player0 = Player(name="Walther",
+                         aga_id=12345,
+                         rating=4.90826)
+
+        player1 = Player(name="Andrew",
+                         aga_id=22345,
+                         rating=1.53764)
+
+        player2 = Player(name="Milan",
+                         aga_id=13346,
+                         rating=-5.45752)
+
+        player3 = Player(name="Walther Clone",
+                         aga_id=12346,
+                         rating=4.90826)
+
+        player4 = copy(player0)
+
+        self.player_list = [player0, player1, player2, player3, player4]
+
+    def test_gt(self):
+        """Test greater than relationship between 2 players"""
+
+        self.assertTrue(self.player_list[0] > self.player_list[3])
+        self.assertFalse(self.player_list[0] < self.player_list[3])
+
+    def test_lt(self):
+        """Test less than relationship between 2 players"""
+
+        self.assertTrue(self.player_list[3] < self.player_list[0])
+        self.assertFalse(self.player_list[3] > self.player_list[0])
+
+    def test_eq(self):
+        """Test equality relationship between 2 players"""
+
+        self.assertTrue(self.player_list[1] == self.player_list[1])
+        self.assertFalse(self.player_list[0] == self.player_list[3])
+
+    def test_duplication(self):
+        """Test to see if duplicates can be identified and eliminated"""
+
+        player_set = set(self.player_list)
+        self.assertIsInstance(player_set, set)
+        self.assertEqual(len(player_set), 4)
+
+    def test_tournament_participation(self):
+        """Test to see if tournament can be assigned"""
+
+        for player in self.player_list:
+            player.participates("Go Congress")
+
+        self.assertTrue(self.player_list[0].tournament == "Go Congress")
+
+    def test_division_assignment(self):
+        """Test to see if division can be assigned"""
+
+        for player in self.player_list:
+            player.plays_division("open")
+
+        self.assertTrue(self.player_list[1].division == "open")
+
+    def test_proper_repr(self):
+        """Test to see if __repr__ returns a proper python expression"""
+        self.assertEqual(eval(repr(self.player_list[0])),
+                         self.player_list[0])
+        self.assertFalse(eval(repr(self.player_list[0])) is
+                         self.player_list[0])
 
 class LadderTestCase(unittest.TestCase):
 
