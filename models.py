@@ -1,6 +1,5 @@
 from peewee import *
 import datetime
-from ladder import Rank
 
 db = SqliteDatabase('ladder.db')
 
@@ -9,73 +8,68 @@ class Player(Model):
     name = CharField()
     rank = IntegerField()
     aga_id = IntegerField()
+    created = DateTimeField(default=datetime.datetime.now)
+    position = IntegerField()
+    active = BooleanField(default=True)
 
     class Meta:
         database = db
+
+    def __init__(self, name, rank, aga_id):
+        players = Player.select().order_by(Player.position)
+
+        if len(players) > 0:
+            last_standing = players[-1].position
+        else:
+            last_standing = 0
+
+        return super().__init__(name=name, rank=rank, aga_id=aga_id, position=last_standing + 1)
+
+    def delete_instance(self):
+        self.drop()
+        return super().delete_instance()
+
+    def drop(self):
+        removed_position = self.position
+        self.active = False
+        players = Player.select()
+        for player in players:
+            if player.position > removed_position:
+                player.position -= 1
+                player.save()
 
 class Result(Model):
     white_player = ForeignKeyField(Player, related_name='white_results')
     black_player = ForeignKeyField(Player, related_name='black_results')
-    ladder = ForeignKeyField(Ladder, related_name='results')
-    created = DateTimeField(default=datetime.datetime.now)
     white_won = BooleanField()
-
-    class Meta:
-        database = db
-
-class Ladder(Model):
-    name = CharField()
     created = DateTimeField(default=datetime.datetime.now)
 
     class Meta:
         database = db
 
-    def add_player(self, player_id):
-        standings = Standing.select().order_by(Standing.position)
+    def __init__(self, white_player_id, black_player_id, white_won):
+        white_player = Player.get(id=white_player_id)
+        black_player = Player.get(id=black_player_id)
 
-        if len(standings) > 0:
-            last_standing = standings[-1].position
-        else:
-            last_standing = 0
+        white_position = white_player.position
+        black_position = black_player.position
+        white_rank = Rank(white_player.rank)
+        black_rank = Rank(black_player.rank)
 
-        standing = Standing(player=player_id, ladder=self.id, position=last_standing + 1)
-        standing.save()
-
-    def remove_player(self, player_id):
-        standing = Standing.get(player=player_id)
-        removed_position = standing.position
-        standing.delete_instance()
-        standings = Standing.select()
-
-        for standing in standings:
-            if standing.position > removed_position:
-                standing.position = standing.position - 1
-                standing.save()
-
-    def add_result(self, white_player_id, black_player_id, white_won):
-        white_standing = Standing.get(player=white_player_id)
-        black_standing = Standing.get(player=black_player_id)
-
-        white_position = white_standing.position
-        black_position = black_standing.position
-        white_rank = Rank(black_sanding.player.rank)
-        black_rank = Rank(white_standing.player.rank)
-
-        validate_match(white_rank, black_rank, white_position, black_position)
-
-        result = Result(white_player=white_player_id, black_player=black_player_id, white_won=white_won)
-        result.save()
+        self.validate_match(white_rank, black_rank, white_position, black_position)
 
         if not white_won:
-            standings = Standings.select()
+            players = Players.select()
 
-            for standing in standings:
-                if standing.position <= white_position and standing.position > black_position:
-                    standing.position += 1
-                    standing.save()
+            for player in players:
+                if player.position <= white_position and player.position > black_position:
+                    player.position += 1
+                    player.save()
 
-            black_standing.position = white_position
-            black_standing.save()
+            black_player.position = white_position
+            black_player.save()
+
+        return super().__init__(white_player=white_player, black_player=black_player, white_won=white_won)
 
     def validate_match(self, white_rank, black_rank, white_position, black_position):
         if black_position < white_position:
@@ -88,17 +82,7 @@ class Ladder(Model):
                                                                                        position_diff))
 
 
-class Standing(Model)
-    player = ForeignKeyField(Player, related_name='standing')
-    ladder = ForeignKeyField(Player, related_name='standings')
-    position = IntegerField()
-
-    class Meta:
-        database = db
-
-
 class Rank(object):
-
     def __init__(self, value):
         if int(value) == 0:
             raise ValueError('Rank values must be a nonzero integer')
