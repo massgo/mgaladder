@@ -4,8 +4,8 @@
 
 from flask import Flask, jsonify
 
-from .models import Player
-from .models import Result
+from models import Player
+from models import Result
 
 app = Flask(__name__, static_url_path='')
 
