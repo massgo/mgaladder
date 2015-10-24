@@ -98,7 +98,7 @@ class Result(object):
 
 class Ladder(object):
 
-    def __init__(self, players=None, standings=None, results=None, base_id=0):
+    def __init__(self, name):
         if standings is None:
             self.standings = []
         else:
