@@ -8,6 +8,7 @@ app.factory('Players', function($resource) {
   return $resource('/players/:playerId', {playerId:'@id'}, {
     update: {
       method: 'POST'
+      url: '/drop/:playerId'
     }
   });
 });

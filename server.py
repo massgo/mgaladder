@@ -38,7 +38,7 @@ def standings():
     players = Player.select().where(Player.active==True)
     return jsonify(Player.players(players))
 
-@app.route('/drop/<id>')
+@app.route('/drop/<id>', method=['POST'])
 def drop(id):
     player = Player.get(id=id)
     player.drop()
