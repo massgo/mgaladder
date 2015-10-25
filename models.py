@@ -38,6 +38,13 @@ class Player(Model):
                 player.position -= 1
                 player.save()
 
+    def __dict__(self):
+        return model_to_dict(self)
+
+    @classmethod
+    def players(cls, players):
+        return [dict(player) for player in players]
+
 class Result(Model):
     white_player = ForeignKeyField(Player, related_name='white_results')
     black_player = ForeignKeyField(Player, related_name='black_results')
